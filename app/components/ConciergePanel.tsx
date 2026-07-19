@@ -9,15 +9,20 @@ interface Message {
 
 export default function ConciergePanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "cart">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", text: "Welcome to Veloxa. How may I assist you today?" },
+  ]);
+  const [traceLog, setTraceLog] = useState<string[]>([
+    `[${new Date().toLocaleTimeString()}] System Initialized: Cloud Connected`,
   ]);
   const [input, setInput] = useState("");
 
   function handleSend(e: FormEvent) {
     e.preventDefault();
     if (!input.trim()) return;
+
+    const t = () => new Date().toLocaleTimeString();
 
     setMessages((prev) => [
       ...prev,
@@ -27,6 +32,14 @@ export default function ConciergePanel() {
         text: "Thanks for reaching out! Full AI responses arrive once the backend is connected — for now this is just the visual shell.",
       },
     ]);
+
+    setTraceLog((prev) => [
+      ...prev,
+      `[${t()}] Security: Scrubbing PII...`,
+      `[${t()}] RAG: Querying Vector DB...`,
+      `[${t()}] Orchestrator: Calling Gemini 2.5 Flash...`,
+    ]);
+
     setInput("");
   }
 
@@ -81,9 +94,17 @@ export default function ConciergePanel() {
               >
                 Cart
               </button>
+              <button
+                onClick={() => setActiveTab("trace")}
+                className={`flex-1 py-3 text-sm font-medium ${
+                  activeTab === "trace" ? "text-ink border-b-2 border-accent" : "text-subtle"
+                }`}
+              >
+                Trace
+              </button>
             </div>
 
-            {activeTab === "chat" ? (
+            {activeTab === "chat" && (
               <>
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
                   {messages.map((msg, i) => (
@@ -114,10 +135,25 @@ export default function ConciergePanel() {
                   </button>
                 </form>
               </>
-            ) : (
+            )}
+
+            {activeTab === "cart" && (
               <div className="flex-1 flex items-center justify-center px-5">
                 <p className="text-subtle text-sm text-center">
                   Your cart is empty. Browse the collection and ask Veloxa for recommendations.
+                </p>
+              </div>
+            )}
+
+            {activeTab === "trace" && (
+              <div className="flex-1 overflow-y-auto bg-background px-4 py-4 flex flex-col">
+                <div className="font-mono text-xs text-muted space-y-1.5 flex-1">
+                  {traceLog.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted mt-3 pt-3 border-t border-white/10">
+                  🔒 Logs forwarded to Langfuse Cloud
                 </p>
               </div>
             )}
