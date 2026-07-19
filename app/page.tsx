@@ -1,7 +1,12 @@
-import CatalogGrid from "./components/CatalogGrid";
+"use client";
+
+import { useState } from "react";
+import CatalogGrid, { type Recommendation } from "./components/CatalogGrid";
 import ConciergePanel from "./components/ConciergePanel";
 
 export default function Home() {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
   return (
     <>
       <main className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6 relative overflow-hidden">
@@ -22,8 +27,8 @@ export default function Home() {
         </p>
       </main>
 
-      <CatalogGrid />
-      <ConciergePanel />
+      <CatalogGrid recommendations={recommendations} />
+      <ConciergePanel onRecommendations={setRecommendations} />
     </>
   );
 }
