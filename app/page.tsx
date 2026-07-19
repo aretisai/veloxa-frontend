@@ -28,6 +28,7 @@ const HERO_SHOES = [
 export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [category, setCategory] = useState("All");
+  const [cartCount, setCartCount] = useState(0);
 
   function jumpToCategory(cat: string) {
     setCategory(cat);
@@ -36,7 +37,7 @@ export default function Home() {
 
   return (
     <>
-      <Nav />
+      <Nav cartCount={cartCount} />
 
       <main className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col justify-center px-6 pt-16">
         {HERO_SHOES.map((shoe) => (
@@ -137,7 +138,7 @@ export default function Home() {
         </div>
       </footer>
 
-      <ConciergePanel onRecommendations={setRecommendations} />
+      <ConciergePanel onRecommendations={setRecommendations} onCartChange={setCartCount} />
     </>
   );
 }

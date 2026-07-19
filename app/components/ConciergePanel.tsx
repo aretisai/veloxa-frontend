@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
 import type { Recommendation } from "./CatalogGrid";
 
 interface Message {
@@ -23,8 +23,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function ConciergePanel({
   onRecommendations,
+  onCartChange,
 }: {
   onRecommendations: (recs: Recommendation[]) => void;
+  onCartChange?: (count: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
@@ -42,6 +44,10 @@ export default function ConciergePanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+
+  useEffect(() => {
+    onCartChange?.(cart.length);
+  }, [cart, onCartChange]);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

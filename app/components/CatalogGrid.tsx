@@ -108,6 +108,15 @@ export default function CatalogGrid({
   return (
     <section className="bg-paper py-20 px-6">
       <div className="max-w-7xl mx-auto">
+        <p className="text-xs text-subtle mb-4">
+          Home <span className="mx-1">›</span> Shop
+          {category !== "All" && (
+            <>
+              <span className="mx-1">›</span>
+              <span className="text-ink">{category}</span>
+            </>
+          )}
+        </p>
         <p className="text-xs tracking-[0.3em] uppercase text-accent mb-2">
           Full Collection
         </p>
