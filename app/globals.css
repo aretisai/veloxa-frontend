@@ -5,6 +5,12 @@
   --color-foreground: #F2F0E9;
   --color-accent: #12E8A0;
   --color-muted: #A8A69C;
+
+  --color-paper: #FAFAF8;
+  --color-ink: #14150F;
+  --color-line: #E8E6DF;
+  --color-subtle: #8A887C;
+
   --font-display: var(--font-space-grotesk);
   --font-body: var(--font-inter);
 }
