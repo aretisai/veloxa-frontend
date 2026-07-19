@@ -20,3 +20,51 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-body), sans-serif;
 }
+@keyframes slowZoom {
+  from { transform: scale(1) rotate(-8deg); }
+  to { transform: scale(1.12) rotate(-4deg); }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slow-zoom { animation: slowZoom 14s ease-in-out infinite alternate; }
+.animate-float { animation: floatY 7s ease-in-out infinite; }
+.animate-marquee { animation: marquee 22s linear infinite; }
+.rise-in { animation: riseIn 0.8s ease-out both; }
+.rise-in-delay-1 { animation: riseIn 0.8s ease-out 0.15s both; }
+.rise-in-delay-2 { animation: riseIn 0.8s ease-out 0.3s both; }
+.rise-in-delay-3 { animation: riseIn 0.8s ease-out 0.45s both; }
+.animate-float-delay-1 { animation: floatY 8s ease-in-out 0.8s infinite; }
+.animate-float-delay-2 { animation: floatY 9s ease-in-out 1.6s infinite; }
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slow-zoom,
+  .animate-float,
+  .animate-float-delay-1,
+  .animate-float-delay-2,
+  .animate-marquee,
+  .rise-in,
+  .rise-in-delay-1,
+  .rise-in-delay-2,
+  .rise-in-delay-3 {
+    animation: none;
+  }
+}

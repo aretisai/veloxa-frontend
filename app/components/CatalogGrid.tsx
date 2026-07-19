@@ -51,11 +51,18 @@ function getCoverImage(shoe: Shoe, color: string): string | null {
 
 type SortOption = "featured" | "price-low" | "price-high";
 
-export default function CatalogGrid({ recommendations }: { recommendations: Recommendation[] }) {
+export default function CatalogGrid({
+  recommendations,
+  category,
+  onCategoryChange,
+}: {
+  recommendations: Recommendation[];
+  category: string;
+  onCategoryChange: (cat: string) => void;
+}) {
   const [selectedShoe, setSelectedShoe] = useState<Shoe | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
   const [sort, setSort] = useState<SortOption>("featured");
 
   function getRecommendation(shoeId: number) {
@@ -137,7 +144,7 @@ export default function CatalogGrid({ recommendations }: { recommendations: Reco
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setCategory(cat)}
+                    onClick={() => onCategoryChange(cat)}
                     className={`text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                       category === cat ? "bg-ink text-paper" : "text-ink hover:bg-white"
                     }`}
