@@ -18,30 +18,37 @@ export default function ConciergePanel() {
   ]);
   const [input, setInput] = useState("");
 
-  function handleSend(e: FormEvent) {
-    e.preventDefault();
-    if (!input.trim()) return;
+  async function handleSend(e: FormEvent) {
+  e.preventDefault();
+  if (!input.trim()) return;
 
-    const t = () => new Date().toLocaleTimeString();
+  const userMessage = input;
+  setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+  setInput("");
 
+  const t = () => new Date().toLocaleTimeString();
+  setTraceLog((prev) => [
+    ...prev,
+    `[${t()}] Security: Scrubbing PII...`,
+    `[${t()}] RAG: Querying Vector DB...`,
+    `[${t()}] Orchestrator: Calling Gemini 2.5 Flash...`,
+  ]);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userMessage }),
+    });
+    const data = await res.json();
+    setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+  } catch {
     setMessages((prev) => [
       ...prev,
-      { role: "user", text: input },
-      {
-        role: "assistant",
-        text: "Thanks for reaching out! Full AI responses arrive once the backend is connected — for now this is just the visual shell.",
-      },
+      { role: "assistant", text: "Couldn't reach the backend — make sure it's running." },
     ]);
-
-    setTraceLog((prev) => [
-      ...prev,
-      `[${t()}] Security: Scrubbing PII...`,
-      `[${t()}] RAG: Querying Vector DB...`,
-      `[${t()}] Orchestrator: Calling Gemini 2.5 Flash...`,
-    ]);
-
-    setInput("");
   }
+}
 
   return (
     <>
