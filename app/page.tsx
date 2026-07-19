@@ -1,4 +1,5 @@
 import CatalogGrid from "./components/CatalogGrid";
+import ConciergePanel from "./components/ConciergePanel";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
       </main>
 
       <CatalogGrid />
+      <ConciergePanel />
     </>
   );
 }
