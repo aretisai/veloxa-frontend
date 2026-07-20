@@ -10,6 +10,7 @@ interface Message {
 }
 
 interface CartItem {
+  id: string;
   name: string;
   price: number;
 }
@@ -50,6 +51,14 @@ export default function ConciergePanel({
     onCartChange?.(cart.length);
   }, [cart, onCartChange]);
 
+  function removeFromCart(id: string) {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function clearCart() {
+    setCart([]);
+  }
+
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -83,6 +92,7 @@ export default function ConciergePanel({
         body: JSON.stringify({
           message: userMessage,
           history,
+          cart,
           session_id: sessionId,
           image_base64: imageToSend?.base64 ?? null,
           image_mime_type: imageToSend?.mimeType ?? null,
@@ -98,8 +108,17 @@ export default function ConciergePanel({
       if (data.trace_log) {
         setTraceLog((prev) => [...prev, ...data.trace_log]);
       }
+      if (data.cart_cleared) {
+        setCart([]);
+      } else if (data.cart_removals && data.cart_removals.length > 0) {
+        setCart((prev) => prev.filter((item) => !data.cart_removals.includes(item.id)));
+      }
       if (data.cart_actions && data.cart_actions.length > 0) {
-        setCart((prev) => [...prev, ...data.cart_actions]);
+        const withIds = data.cart_actions.map((item: { name: string; price: number }) => ({
+          ...item,
+          id: crypto.randomUUID(),
+        }));
+        setCart((prev) => [...prev, ...withIds]);
       }
       if (data.recommendations && data.recommendations.length > 0) {
         onRecommendations(data.recommendations);
@@ -270,11 +289,32 @@ export default function ConciergePanel({
                   </div>
                 ) : (
                   <>
-                    <div className="flex-1 space-y-2">
-                      {cart.map((item, i) => (
-                        <div key={i} className="flex justify-between text-sm text-ink">
-                          <span>{item.name}</span>
-                          <span className="font-semibold">${item.price}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs uppercase tracking-wide text-subtle">
+                        {cart.length} {cart.length === 1 ? "item" : "items"}
+                      </p>
+                      <button
+                        onClick={clearCart}
+                        className="text-xs text-subtle hover:text-red-500 transition-colors"
+                      >
+                        Clear cart
+                      </button>
+                    </div>
+                    <div className="flex-1 space-y-1 overflow-y-auto">
+                      {cart.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between text-sm text-ink py-2 border-b border-line last:border-0"
+                        >
+                          <span className="flex-1">{item.name}</span>
+                          <span className="font-semibold mr-3">${item.price}</span>
+                          <button
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-subtle hover:text-red-500 text-lg leading-none w-5 h-5 flex items-center justify-center shrink-0"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            ×
+                          </button>
                         </div>
                       ))}
                     </div>
