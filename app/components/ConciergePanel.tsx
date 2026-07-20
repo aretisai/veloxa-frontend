@@ -41,6 +41,7 @@ export default function ConciergePanel({
   const [input, setInput] = useState("");
   const [sessionId] = useState(() => crypto.randomUUID());
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
@@ -73,6 +74,7 @@ export default function ConciergePanel({
     setInput("");
     const imageToSend = selectedImage;
     setSelectedImage(null);
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${API_URL}/chat`, {
@@ -107,6 +109,8 @@ export default function ConciergePanel({
         ...prev,
         { role: "assistant", text: "Couldn't reach the backend — make sure it's running." },
       ]);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -213,7 +217,13 @@ export default function ConciergePanel({
                     </button>
                   </div>
                 )}
-
+                  {isLoading && (
+                    <div className="max-w-[80%] px-4 py-3 rounded-2xl bg-white border border-line flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce" />
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.15s]" />
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.3s]" />
+                    </div>
+                  )}              
                 <form onSubmit={handleSend} className="p-4 border-t border-line flex gap-2 items-center">
                   <input
                     ref={fileInputRef}
@@ -239,7 +249,11 @@ export default function ConciergePanel({
                     placeholder="Ask about sizing, colors, or add items to cart..."
                     className="flex-1 bg-white border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:border-accent"
                   />
-                  <button type="submit" className="bg-ink text-paper rounded-full px-4 py-2 text-sm font-medium shrink-0">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-ink text-paper rounded-full px-4 py-2 text-sm font-medium shrink-0 disabled:opacity-40"
+                  >
                     Send
                   </button>
                 </form>
