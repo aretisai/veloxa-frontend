@@ -156,7 +156,10 @@ export default function ConciergePanel({
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setIsOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/30 sm:bg-transparent sm:pointer-events-none"
+            onClick={() => setIsOpen(false)}
+          />
 
           <div className="relative bg-paper w-full sm:w-[400px] h-full flex flex-col shadow-2xl">
             <div className="bg-background text-foreground px-5 py-4 flex items-center justify-between">

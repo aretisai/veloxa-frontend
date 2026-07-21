@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Nav from "./components/Nav";
 import CatalogGrid, { type Recommendation } from "./components/CatalogGrid";
 import ConciergePanel from "./components/ConciergePanel";
@@ -27,6 +27,12 @@ const HERO_SHOES = [
 
 export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
+  useEffect(() => {
+    if (recommendations.length > 0) {
+      document.getElementById("shop")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [recommendations]);
   const [category, setCategory] = useState("All");
   const [cartCount, setCartCount] = useState(0);
 
