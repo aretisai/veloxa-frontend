@@ -10,6 +10,7 @@ interface Metrics {
   avg_response_seconds: number | null;
   escalations: number | null;
   tool_calls: number | null;
+  total_cost_usd: number | null;
   error: string | null;
 }
 
@@ -19,7 +20,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetch(`${API_URL}/admin/metrics`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+        return res.json();
+      })
       .then(setMetrics)
       .catch(() =>
         setMetrics({
@@ -28,6 +32,7 @@ export default function AdminPage() {
           avg_response_seconds: null,
           escalations: null,
           tool_calls: null,
+          total_cost_usd: null,
           error: "Could not reach backend",
         })
       )
@@ -48,7 +53,7 @@ export default function AdminPage() {
         {!loading && metrics?.error && <p className="text-red-400 text-sm">{metrics.error}</p>}
 
         {!loading && metrics && !metrics.error && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard label="Conversations" value={metrics.total_conversations} />
             <StatCard label="Avg. Response Time" value={metrics.avg_response_seconds} suffix="s" />
             <StatCard label="Cart Actions" value={metrics.tool_calls} />
@@ -57,11 +62,12 @@ export default function AdminPage() {
               value={metrics.escalations}
               tone={metrics.escalations && metrics.escalations > 0 ? "warn" : "default"}
             />
+            <StatCard label="Total Cost" value={metrics.total_cost_usd} prefix="$" />
           </div>
         )}
 
         <p className="text-xs text-muted mt-12">
-          Cost-per-session isn&apos;t tracked yet — planned as a follow-up once Gemini calls are tagged with token usage.
+          Total cost is summed across all agent steps (Intent Router, Concierge, Vision, Output Validator) over the selected window.
         </p>
       </div>
     </main>
@@ -71,11 +77,13 @@ export default function AdminPage() {
 function StatCard({
   label,
   value,
+  prefix = "",
   suffix = "",
   tone = "default",
 }: {
   label: string;
   value: number | null;
+  prefix?: string;
   suffix?: string;
   tone?: "default" | "warn";
 }) {
@@ -83,8 +91,7 @@ function StatCard({
     <div className="border border-white/10 rounded-xl p-6">
       <p className="text-xs uppercase tracking-wide text-muted mb-2">{label}</p>
       <p className={`font-display text-4xl font-bold ${tone === "warn" ? "text-amber-400" : "text-foreground"}`}>
-        {value ?? "—"}
-        {value !== null && suffix}
+        {value !== null ? `${prefix}${value}${suffix}` : "N/A"}
       </p>
     </div>
   );
