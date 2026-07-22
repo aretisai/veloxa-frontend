@@ -43,7 +43,9 @@ export default function ConciergePanel({
   const [sessionId] = useState(() => crypto.randomUUID());
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
@@ -71,6 +73,37 @@ export default function ConciergePanel({
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  }
+
+  function handleVoiceInput() {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Voice input isn't supported in this browser. Try Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   }
 
   async function handleSend(e: FormEvent) {
@@ -265,10 +298,23 @@ export default function ConciergePanel({
                       <circle cx="12" cy="13" r="4" />
                     </svg>
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleVoiceInput}
+                    className={`shrink-0 transition-colors ${isListening ? "text-red-500 animate-pulse" : "text-subtle hover:text-ink"}`}
+                    aria-label={isListening ? "Stop recording" : "Speak your question"}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
+                    </svg>
+                  </button>
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about sizing, colors, or add items to cart..."
+                    placeholder={isListening ? "Listening..." : "Ask about sizing, colors, or add items to cart..."}
                     className="flex-1 bg-white border border-line rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:border-accent"
                   />
                   <button
