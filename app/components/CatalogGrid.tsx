@@ -35,7 +35,6 @@ export interface CartItem {
 
 export const catalog = catalogData.catalog as Shoe[];
 const CATEGORIES = ["All", "Lifestyle", "Road Running", "Track & Field", "Trail Running"];
-const SIZES = ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
 
 const COLOR_SWATCH: Record<string, string> = {
   Black: "#1a1a1a", White: "#f5f5f5", Red: "#dc2626", Blue: "#2563eb",
@@ -54,33 +53,18 @@ export default function CatalogGrid({
   recommendations,
   category,
   onCategoryChange,
-  onAddToCart,
+  onSelectShoe,
 }: {
   recommendations: Recommendation[];
   category: string;
   onCategoryChange: (cat: string) => void;
-  onAddToCart: (item: CartItem) => void;
+  onSelectShoe: (shoeId: number) => void;
 }) {
-  const [selectedShoe, setSelectedShoe] = useState<Shoe | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
 
   function getRecommendation(shoeId: number) {
     return recommendations.find((r) => r.id === shoeId) ?? null;
-  }
-
-  function openShoe(shoe: Shoe) {
-    setSelectedShoe(shoe);
-    setSelectedColor(null);
-    setSelectedSize(null);
-  }
-
-  function closeShoe() {
-    setSelectedShoe(null);
-    setSelectedColor(null);
-    setSelectedSize(null);
   }
 
   const displayCatalog = useMemo(() => {
@@ -103,11 +87,6 @@ export default function CatalogGrid({
     }
     return result;
   }, [search, category, sort, recommendations]);
-
-  const selectedRec = selectedShoe ? getRecommendation(selectedShoe.id) : null;
-  const baseColor = selectedRec?.recommended_color || selectedShoe?.colors_available[0] || "";
-  const displayColor = selectedColor || baseColor;
-  const detailImage = selectedShoe ? getCoverImage(selectedShoe, displayColor) : null;
 
   return (
     <section className="bg-paper py-20 px-6">
@@ -177,7 +156,7 @@ export default function CatalogGrid({
                   const onSale = shoe.price !== shoe.finalPrice;
 
                   return (
-                    <button key={shoe.id} onClick={() => openShoe(shoe)} className="text-left group">
+                    <button key={shoe.id} onClick={() => onSelectShoe(shoe.id)} className="text-left group">
                       <div className="aspect-square bg-white flex items-center justify-center mb-3 overflow-hidden">
                         {image ? (
                           <img src={`/${image}`} alt={shoe.model} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -209,124 +188,6 @@ export default function CatalogGrid({
           </div>
         </div>
       </div>
-
-      {selectedShoe && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={closeShoe} />
-
-          <div className="relative bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <button
-              onClick={closeShoe}
-              className="absolute top-4 right-4 text-subtle hover:text-ink text-2xl leading-none z-10"
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            <div className="grid md:grid-cols-2 gap-8 p-6 md:p-8">
-              <div className="aspect-square bg-paper rounded-xl flex items-center justify-center overflow-hidden">
-                {detailImage ? (
-                  <img src={`/${detailImage}`} alt={selectedShoe.model} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-subtle text-sm">Photo coming soon</span>
-                )}
-              </div>
-
-              <div>
-                <h3 className="font-display text-2xl font-bold text-ink mb-2">{selectedShoe.model}</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl font-bold text-ink">${selectedShoe.finalPrice}</span>
-                  {selectedShoe.price !== selectedShoe.finalPrice && (
-                    <span className="text-subtle line-through">${selectedShoe.price}</span>
-                  )}
-                </div>
-
-                <p className="text-xs uppercase tracking-wide text-subtle mb-2">Select Color</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {selectedShoe.colors_available.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => {
-                        setSelectedColor(color);
-                        setSelectedSize(null);
-                      }}
-                      className={`px-3 py-1.5 text-sm rounded-full border ${
-                        color === displayColor
-                          ? "bg-ink text-paper border-ink"
-                          : "border-line text-ink hover:border-ink"
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-
-                {selectedRec && (
-                  <div className="bg-paper border-l-4 border-accent rounded-r-lg p-3 mb-4 text-sm">
-                    <p className="font-semibold text-ink mb-1">
-                      ✨ AI Match ({selectedRec.match_percentage}%)
-                    </p>
-                    <p className="text-subtle">{selectedRec.reason}</p>
-                  </div>
-                )}
-
-                <p className="text-xs uppercase tracking-wide text-subtle mb-2">
-                  Select Size — {displayColor}
-                </p>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
-                  {SIZES.map((size) => {
-                    const item = selectedShoe.inventory.find(
-                      (i) => i.color === displayColor && i.size === size
-                    );
-                    const stock = item?.stock ?? 0;
-                    const inStock = stock > 0;
-                    const isSelected = selectedSize === size;
-                    return (
-                      <button
-                        key={size}
-                        onClick={() => inStock && setSelectedSize(size)}
-                        disabled={!inStock}
-                        className={`text-center rounded-lg border px-2 py-2 transition-colors ${
-                          !inStock
-                            ? "border-red-100 bg-red-50 cursor-not-allowed opacity-60"
-                            : isSelected
-                              ? "border-ink bg-ink"
-                              : "border-line hover:border-ink"
-                        }`}
-                      >
-                        <div className={`text-sm ${isSelected ? "text-paper" : "text-ink"}`}>{size}</div>
-                        <div
-                          className={`text-xs font-bold ${
-                            !inStock ? "text-red-500" : isSelected ? "text-paper" : "text-emerald-600"
-                          }`}
-                        >
-                          {inStock ? `${stock} in stock` : "Out of Stock"}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => {
-                    if (!selectedSize) return;
-                    onAddToCart({
-                      id: crypto.randomUUID(),
-                      name: `${selectedShoe.model} — ${displayColor}, ${selectedSize}`,
-                      price: selectedShoe.finalPrice,
-                    });
-                    closeShoe();
-                  }}
-                  disabled={!selectedSize}
-                  className="w-full bg-ink text-paper rounded-full py-3 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                >
-                  {selectedSize ? `Add to Cart — $${selectedShoe.finalPrice}` : "Select a size to continue"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

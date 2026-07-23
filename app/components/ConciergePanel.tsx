@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef, type FormEvent } from "react";
-import type { Recommendation, CartItem } from "./CatalogGrid";
+import { catalog, type Recommendation, type CartItem } from "./CatalogGrid";
 
 interface Message {
   role: "user" | "assistant";
   text: string;
   escalate?: boolean;
+  recommendations?: Recommendation[];
 }
 
 interface SelectedImage {
@@ -20,10 +21,12 @@ export default function ConciergePanel({
   onRecommendations,
   cart,
   setCart,
+  onSelectShoe,
 }: {
   onRecommendations: (recs: Recommendation[]) => void;
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  onSelectShoe: (shoeId: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
@@ -126,7 +129,12 @@ export default function ConciergePanel({
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: data.reply, escalate: data.escalate },
+        {
+          role: "assistant",
+          text: data.reply,
+          escalate: data.escalate,
+          recommendations: data.recommendations,
+        },
       ]);
 
       if (data.trace_log) {
@@ -239,6 +247,36 @@ export default function ConciergePanel({
                           <a href="mailto:support@veloxa.com" className="underline font-medium">
                             Email Support
                           </a>
+                        </div>
+                      )}
+                      {msg.recommendations && msg.recommendations.length > 0 && (
+                        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 max-w-[90%]">
+                          {msg.recommendations.map((rec) => {
+                            const shoe = catalog.find((s) => s.id === rec.id);
+                            if (!shoe) return null;
+                            const color = rec.recommended_color || shoe.colors_available[0];
+                            const image = shoe.inventory.find((i) => i.color === color)?.image;
+                            return (
+                              <button
+                                key={rec.id}
+                                onClick={() => onSelectShoe(rec.id)}
+                                className="shrink-0 w-28 text-left bg-white border border-line rounded-lg overflow-hidden hover:border-accent transition-colors"
+                              >
+                                <div className="aspect-square bg-paper flex items-center justify-center">
+                                  {image ? (
+                                    <img src={`/${image}`} alt={shoe.model} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-subtle text-[10px]">No photo</span>
+                                  )}
+                                </div>
+                                <div className="p-2">
+                                  <p className="text-[10px] font-bold text-accent">{rec.match_percentage}% Match</p>
+                                  <p className="text-xs font-medium text-ink truncate">{shoe.model}</p>
+                                  <p className="text-xs text-subtle">${shoe.finalPrice}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Nav from "./components/Nav";
-import CatalogGrid, { type Recommendation, type CartItem } from "./components/CatalogGrid";
+import CatalogGrid, { catalog, type Recommendation, type CartItem } from "./components/CatalogGrid";
+import ShoeModal from "./components/ShoeModal";
 import ConciergePanel from "./components/ConciergePanel";
 
 const MARQUEE_ITEMS = [
@@ -29,6 +30,7 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedShoeId, setSelectedShoeId] = useState<number | null>(null);
 
   useEffect(() => {
     if (recommendations.length > 0) {
@@ -44,6 +46,9 @@ export default function Home() {
   function handleAddToCart(item: CartItem) {
     setCart((prev) => [...prev, item]);
   }
+
+  const selectedShoe = catalog.find((s) => s.id === selectedShoeId) ?? null;
+  const selectedRec = selectedShoeId ? recommendations.find((r) => r.id === selectedShoeId) ?? null : null;
 
   return (
     <>
@@ -105,7 +110,7 @@ export default function Home() {
           recommendations={recommendations}
           category={category}
           onCategoryChange={setCategory}
-          onAddToCart={handleAddToCart}
+          onSelectShoe={setSelectedShoeId}
         />
       </div>
 
@@ -123,7 +128,21 @@ export default function Home() {
         </div>
       </footer>
 
-      <ConciergePanel onRecommendations={setRecommendations} cart={cart} setCart={setCart} />
+      {selectedShoe && (
+        <ShoeModal
+          shoe={selectedShoe}
+          recommendation={selectedRec}
+          onAddToCart={handleAddToCart}
+          onClose={() => setSelectedShoeId(null)}
+        />
+      )}
+
+      <ConciergePanel
+        onRecommendations={setRecommendations}
+        cart={cart}
+        setCart={setCart}
+        onSelectShoe={setSelectedShoeId}
+      />
     </>
   );
 }
