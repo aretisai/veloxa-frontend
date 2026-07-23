@@ -3,14 +3,14 @@
 import { useState, useMemo } from "react";
 import catalogData from "@/data/veloxa_enhanced_catalog.json";
 
-interface InventoryItem {
+export interface InventoryItem {
   color: string;
   size: string;
   stock: number;
   image: string;
 }
 
-interface Shoe {
+export interface Shoe {
   id: number;
   model: string;
   category: string;
@@ -27,21 +27,20 @@ export interface Recommendation {
   recommended_color?: string;
 }
 
-const catalog = catalogData.catalog as Shoe[];
-const SIZES = ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export const catalog = catalogData.catalog as Shoe[];
 const CATEGORIES = ["All", "Lifestyle", "Road Running", "Track & Field", "Trail Running"];
+const SIZES = ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
 
 const COLOR_SWATCH: Record<string, string> = {
-  Black: "#1a1a1a",
-  White: "#f5f5f5",
-  Red: "#dc2626",
-  Blue: "#2563eb",
-  Green: "#16a34a",
-  Orange: "#ea580c",
-  Pink: "#ec4899",
-  Grey: "#9ca3af",
-  Brown: "#92653c",
-  Yellow: "#eab308",
+  Black: "#1a1a1a", White: "#f5f5f5", Red: "#dc2626", Blue: "#2563eb",
+  Green: "#16a34a", Orange: "#ea580c", Pink: "#ec4899", Grey: "#9ca3af",
+  Brown: "#92653c", Yellow: "#eab308",
 };
 
 function getCoverImage(shoe: Shoe, color: string): string | null {
@@ -55,13 +54,16 @@ export default function CatalogGrid({
   recommendations,
   category,
   onCategoryChange,
+  onAddToCart,
 }: {
   recommendations: Recommendation[];
   category: string;
   onCategoryChange: (cat: string) => void;
+  onAddToCart: (item: CartItem) => void;
 }) {
   const [selectedShoe, setSelectedShoe] = useState<Shoe | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
 
@@ -72,11 +74,13 @@ export default function CatalogGrid({
   function openShoe(shoe: Shoe) {
     setSelectedShoe(shoe);
     setSelectedColor(null);
+    setSelectedSize(null);
   }
 
   function closeShoe() {
     setSelectedShoe(null);
     setSelectedColor(null);
+    setSelectedSize(null);
   }
 
   const displayCatalog = useMemo(() => {
@@ -117,12 +121,8 @@ export default function CatalogGrid({
             </>
           )}
         </p>
-        <p className="text-xs tracking-[0.3em] uppercase text-accent mb-2">
-          Full Collection
-        </p>
-        <h2 className="font-display text-3xl md:text-4xl font-bold text-ink mb-8">
-          Shop the Lineup
-        </h2>
+        <p className="text-xs tracking-[0.3em] uppercase text-accent mb-2">Full Collection</p>
+        <h2 className="font-display text-3xl md:text-4xl font-bold text-ink mb-8">Shop the Lineup</h2>
 
         <input
           type="text"
@@ -180,11 +180,7 @@ export default function CatalogGrid({
                     <button key={shoe.id} onClick={() => openShoe(shoe)} className="text-left group">
                       <div className="aspect-square bg-white flex items-center justify-center mb-3 overflow-hidden">
                         {image ? (
-                          <img
-                            src={`/${image}`}
-                            alt={shoe.model}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          <img src={`/${image}`} alt={shoe.model} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         ) : (
                           <span className="text-subtle text-sm">Photo coming soon</span>
                         )}
@@ -197,11 +193,7 @@ export default function CatalogGrid({
                       <h3 className="font-semibold text-ink">{shoe.model}</h3>
                       <div className="flex items-center gap-1.5 mt-1 mb-2">
                         {shoe.colors_available.map((c) => (
-                          <span
-                            key={c}
-                            className="w-3 h-3 rounded-full border border-line"
-                            style={{ backgroundColor: COLOR_SWATCH[c] ?? "#ccc" }}
-                          />
+                          <span key={c} className="w-3 h-3 rounded-full border border-line" style={{ backgroundColor: COLOR_SWATCH[c] ?? "#ccc" }} />
                         ))}
                       </div>
                       {rec && <p className="text-xs text-subtle italic mb-1">✨ {rec.reason}</p>}
@@ -219,7 +211,7 @@ export default function CatalogGrid({
       </div>
 
       {selectedShoe && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={closeShoe} />
 
           <div className="relative bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -254,7 +246,10 @@ export default function CatalogGrid({
                   {selectedShoe.colors_available.map((color) => (
                     <button
                       key={color}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setSelectedSize(null);
+                      }}
                       className={`px-3 py-1.5 text-sm rounded-full border ${
                         color === displayColor
                           ? "bg-ink text-paper border-ink"
@@ -276,33 +271,57 @@ export default function CatalogGrid({
                 )}
 
                 <p className="text-xs uppercase tracking-wide text-subtle mb-2">
-                  Live Stock — {displayColor}
+                  Select Size — {displayColor}
                 </p>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
                   {SIZES.map((size) => {
                     const item = selectedShoe.inventory.find(
                       (i) => i.color === displayColor && i.size === size
                     );
                     const stock = item?.stock ?? 0;
+                    const inStock = stock > 0;
+                    const isSelected = selectedSize === size;
                     return (
-                      <div
+                      <button
                         key={size}
-                        className={`text-center rounded-lg border px-2 py-2 ${
-                          stock > 0 ? "border-line" : "border-red-100 bg-red-50"
+                        onClick={() => inStock && setSelectedSize(size)}
+                        disabled={!inStock}
+                        className={`text-center rounded-lg border px-2 py-2 transition-colors ${
+                          !inStock
+                            ? "border-red-100 bg-red-50 cursor-not-allowed opacity-60"
+                            : isSelected
+                              ? "border-ink bg-ink"
+                              : "border-line hover:border-ink"
                         }`}
                       >
-                        <div className="text-sm text-ink">{size}</div>
+                        <div className={`text-sm ${isSelected ? "text-paper" : "text-ink"}`}>{size}</div>
                         <div
                           className={`text-xs font-bold ${
-                            stock > 0 ? "text-emerald-600" : "text-red-500"
+                            !inStock ? "text-red-500" : isSelected ? "text-paper" : "text-emerald-600"
                           }`}
                         >
-                          {stock > 0 ? `${stock} in stock` : "Out of Stock"}
+                          {inStock ? `${stock} in stock` : "Out of Stock"}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
+
+                <button
+                  onClick={() => {
+                    if (!selectedSize) return;
+                    onAddToCart({
+                      id: crypto.randomUUID(),
+                      name: `${selectedShoe.model} — ${displayColor}, ${selectedSize}`,
+                      price: selectedShoe.finalPrice,
+                    });
+                    closeShoe();
+                  }}
+                  disabled={!selectedSize}
+                  className="w-full bg-ink text-paper rounded-full py-3 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                >
+                  {selectedSize ? `Add to Cart — $${selectedShoe.finalPrice}` : "Select a size to continue"}
+                </button>
               </div>
             </div>
           </div>

@@ -1,18 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, type FormEvent } from "react";
-import type { Recommendation } from "./CatalogGrid";
+import { useState, useRef, type FormEvent } from "react";
+import type { Recommendation, CartItem } from "./CatalogGrid";
 
 interface Message {
   role: "user" | "assistant";
   text: string;
   escalate?: boolean;
-}
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
 }
 
 interface SelectedImage {
@@ -24,10 +18,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function ConciergePanel({
   onRecommendations,
-  onCartChange,
+  cart,
+  setCart,
 }: {
   onRecommendations: (recs: Recommendation[]) => void;
-  onCartChange?: (count: number) => void;
+  cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
@@ -37,7 +33,6 @@ export default function ConciergePanel({
   const [traceLog, setTraceLog] = useState<string[]>([
     `[${new Date().toLocaleTimeString()}] System Initialized: Cloud Connected`,
   ]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [input, setInput] = useState("");
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -48,10 +43,6 @@ export default function ConciergePanel({
   const recognitionRef = useRef<any>(null);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
-
-  useEffect(() => {
-    onCartChange?.(cart.length);
-  }, [cart, onCartChange]);
 
   function removeFromCart(id: string) {
     setCart((prev) => prev.filter((item) => item.id !== id));
@@ -252,6 +243,13 @@ export default function ConciergePanel({
                       )}
                     </div>
                   ))}
+                  {isLoading && (
+                    <div className="max-w-[80%] px-4 py-3 rounded-2xl bg-white border border-line flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce" />
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.15s]" />
+                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.3s]" />
+                    </div>
+                  )}
                 </div>
 
                 {selectedImage && (
@@ -272,13 +270,7 @@ export default function ConciergePanel({
                     </button>
                   </div>
                 )}
-                  {isLoading && (
-                    <div className="max-w-[80%] px-4 py-3 rounded-2xl bg-white border border-line flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce" />
-                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.15s]" />
-                      <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.3s]" />
-                    </div>
-                  )}              
+
                 <form onSubmit={handleSend} className="p-4 border-t border-line flex gap-2 items-center">
                   <input
                     ref={fileInputRef}
