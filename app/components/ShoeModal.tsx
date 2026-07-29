@@ -7,7 +7,7 @@ const SIZES = ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
 
 function getCoverImage(shoe: Shoe, color: string): string | null {
   const item = shoe.inventory.find((i) => i.color === color);
-  return item?.image ?? null;
+  return item?.image ?? shoe.inventory[0]?.image ?? null;
 }
 
 export default function ShoeModal({
@@ -15,11 +15,13 @@ export default function ShoeModal({
   recommendation,
   onAddToCart,
   onClose,
+  onAskDetails,
 }: {
   shoe: Shoe;
   recommendation: Recommendation | null;
   onAddToCart: (item: CartItem) => void;
   onClose: () => void;
+  onAskDetails: (shoe: Shoe) => void;
 }) {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -51,7 +53,15 @@ export default function ShoeModal({
           </div>
 
           <div>
-            <h3 className="font-display text-2xl font-bold text-ink mb-2">{shoe.model}</h3>
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <h3 className="font-display text-2xl font-bold text-ink">{shoe.model}</h3>
+              <button
+                onClick={() => onAskDetails(shoe)}
+                className="shrink-0 text-xs font-medium text-accent border border-accent rounded-full px-3 py-1.5 hover:bg-accent hover:text-background transition-colors whitespace-nowrap"
+              >
+                Ask Veloxa
+              </button>
+            </div>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xl font-bold text-ink">${shoe.finalPrice}</span>
               {shoe.price !== shoe.finalPrice && (

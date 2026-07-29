@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Nav from "./components/Nav";
-import CatalogGrid, { catalog, type Recommendation, type CartItem } from "./components/CatalogGrid";
+import CatalogGrid, { catalog, type Recommendation, type CartItem, type Shoe } from "./components/CatalogGrid";
 import ShoeModal from "./components/ShoeModal";
 import ConciergePanel from "./components/ConciergePanel";
 
@@ -11,13 +11,6 @@ const MARQUEE_ITEMS = [
   "AI-powered visual search",
   "30-day trial period",
   "Enterprise concierge",
-];
-
-const COLLECTIONS = [
-  { name: "Road Running", tagline: "Built for pace on pavement" },
-  { name: "Trail Running", tagline: "Grip for the unpredictable" },
-  { name: "Track & Field", tagline: "Engineered for the start gun" },
-  { name: "Lifestyle", tagline: "Performance, off the clock" },
 ];
 
 const HERO_SHOES = [
@@ -31,6 +24,8 @@ export default function Home() {
   const [category, setCategory] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedShoeId, setSelectedShoeId] = useState<number | null>(null);
+  const [conciergeOpen, setConciergeOpen] = useState(false);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
 
   useEffect(() => {
     if (recommendations.length > 0) {
@@ -47,12 +42,19 @@ export default function Home() {
     setCart((prev) => [...prev, item]);
   }
 
+  function handleAskAboutShoe(shoe: Shoe) {
+    setPendingQuestion(`Tell me more about the ${shoe.model}.`);
+    setConciergeOpen(true);
+    setSelectedShoeId(null);
+  }
+
   const selectedShoe = catalog.find((s) => s.id === selectedShoeId) ?? null;
   const selectedRec = selectedShoeId ? recommendations.find((r) => r.id === selectedShoeId) ?? null : null;
+  const spotlightShoe = catalog.find((s) => s.model === "TrailBlazer X Series V") ?? null;
 
   return (
     <>
-      <Nav cartCount={cart.length} />
+      <Nav cartCount={cart.length} category={category} onCategoryChange={jumpToCategory} />
 
       <main className="min-h-screen bg-background text-foreground relative overflow-hidden flex flex-col justify-center px-6 pt-16">
         {HERO_SHOES.map((shoe) => (
@@ -90,29 +92,83 @@ export default function Home() {
         </div>
       </main>
 
-      <section id="collections" className="bg-background text-foreground border-t border-white/10">
-        <div className="max-w-6xl mx-auto px-6 py-20">
-          <p className="text-xs tracking-[0.3em] uppercase text-accent mb-10">Collections</p>
-          <div className="grid md:grid-cols-2 gap-px bg-white/10">
-            {COLLECTIONS.map((col) => (
-              <button key={col.name} onClick={() => jumpToCategory(col.name)} className="group text-left bg-background p-8 md:p-10 hover:bg-accent transition-colors duration-300">
-                <h3 className="font-display text-3xl md:text-4xl font-bold text-foreground group-hover:text-background transition-colors">{col.name}</h3>
-                <p className="mt-2 text-sm text-muted group-hover:text-background/70 transition-colors">{col.tagline}</p>
-                <span className="mt-6 inline-block text-sm text-accent group-hover:text-background transition-colors">Browse →</span>
+      {spotlightShoe && (
+        <section className="bg-background text-foreground border-t border-white/10">
+          <div className="max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+            <div className="aspect-square bg-white/5 rounded-2xl flex items-center justify-center p-12">
+              <img
+                src={`/images/${spotlightShoe.model.replace(/ /g, "_")}_Black.png`}
+                alt={spotlightShoe.model}
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                className="max-w-full drop-shadow-[0_30px_40px_rgba(0,0,0,0.4)]"
+              />
+            </div>
+            <div>
+              <p className="text-xs tracking-[0.3em] uppercase text-accent mb-4">Premium Tier · {spotlightShoe.category}</p>
+              <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
+                {spotlightShoe.model.replace(" Series", " — Series")}
+              </h2>
+              <p className="text-muted text-base leading-relaxed max-w-md mb-6">
+                Stability support paired with a minimal heel-to-toe drop — built for runners who want real ground feedback without giving up structure.
+              </p>
+              <div className="flex items-center gap-3 mb-8">
+                <span className="text-2xl font-bold">${spotlightShoe.finalPrice}</span>
+                {spotlightShoe.price !== spotlightShoe.finalPrice && (
+                  <span className="text-muted line-through">${spotlightShoe.price}</span>
+                )}
+              </div>
+              <button
+                onClick={() => jumpToCategory(spotlightShoe.category)}
+                className="bg-accent text-background font-semibold px-8 py-3.5 rounded-full hover:opacity-90 transition-opacity"
+              >
+                Shop {spotlightShoe.category}
               </button>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <div id="shop">
         <CatalogGrid
           recommendations={recommendations}
           category={category}
-          onCategoryChange={setCategory}
           onSelectShoe={setSelectedShoeId}
         />
       </div>
+
+      <section className="bg-paper border-t border-line px-6 py-20">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 rounded-2xl overflow-hidden border border-line">
+          <div className="bg-white p-10 md:p-14 flex flex-col justify-center">
+            <p className="text-xs tracking-[0.3em] uppercase text-accent mb-4">AI Style Concierge</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-ink mb-4">Your personal fit expert, on call</h2>
+            <p className="text-subtle text-base leading-relaxed max-w-sm mb-8">
+              Upload a photo, describe how you run, or just ask — enterprise visual search and agentic recommendations do the rest.
+            </p>
+            <button
+              onClick={() => setConciergeOpen(true)}
+              className="bg-ink text-paper font-semibold px-8 py-3.5 rounded-full hover:opacity-90 transition-opacity self-start"
+            >
+              Start a Conversation
+            </button>
+          </div>
+          <div className="bg-background p-6 flex flex-col">
+            <div className="flex items-center gap-2 text-white text-sm font-semibold mb-4">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              Veloxa Concierge · Online
+            </div>
+            <div className="bg-white/10 text-muted text-sm rounded-2xl rounded-tl-sm px-4 py-3 mb-4 max-w-[90%]">
+              Welcome to Veloxa. How may I assist you today?
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["Find me running shoe", "Style advice"].map((q) => (
+                <span key={q} className="border border-white/15 text-muted text-xs px-3 py-1.5 rounded-full">
+                  {q}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <footer className="bg-background text-foreground border-t border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-14 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -121,7 +177,6 @@ export default function Home() {
             <p className="mt-1 text-sm text-muted">Enterprise AI shopping, demonstrated.</p>
           </div>
           <div className="flex gap-8 text-sm text-muted">
-            <a href="#collections" className="hover:text-foreground transition-colors">Collections</a>
             <a href="#shop" className="hover:text-foreground transition-colors">Shop</a>
             <a href="mailto:support@veloxa.com" className="hover:text-foreground transition-colors">Support</a>
           </div>
@@ -134,14 +189,19 @@ export default function Home() {
           recommendation={selectedRec}
           onAddToCart={handleAddToCart}
           onClose={() => setSelectedShoeId(null)}
+          onAskDetails={handleAskAboutShoe}
         />
       )}
 
       <ConciergePanel
+        isOpen={conciergeOpen}
+        onOpenChange={setConciergeOpen}
         onRecommendations={setRecommendations}
         cart={cart}
         setCart={setCart}
         onSelectShoe={setSelectedShoeId}
+        pendingQuestion={pendingQuestion}
+        onPendingConsumed={() => setPendingQuestion(null)}
       />
     </>
   );

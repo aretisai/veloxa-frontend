@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { catalog, type Recommendation, type CartItem } from "./CatalogGrid";
 
 interface Message {
@@ -18,17 +18,24 @@ interface SelectedImage {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function ConciergePanel({
+  isOpen,
+  onOpenChange,
   onRecommendations,
   cart,
   setCart,
   onSelectShoe,
+  pendingQuestion,
+  onPendingConsumed,
 }: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
   onRecommendations: (recs: Recommendation[]) => void;
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   onSelectShoe: (shoeId: number) => void;
+  pendingQuestion: string | null;
+  onPendingConsumed: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", text: "Welcome to Veloxa. How may I assist you today?" },
@@ -46,6 +53,14 @@ export default function ConciergePanel({
   const recognitionRef = useRef<any>(null);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+
+  useEffect(() => {
+    if (isOpen && pendingQuestion) {
+      sendMessage(pendingQuestion, null);
+      onPendingConsumed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, pendingQuestion]);
 
   function removeFromCart(id: string) {
     setCart((prev) => prev.filter((item) => item.id !== id));
@@ -100,16 +115,11 @@ export default function ConciergePanel({
     recognition.start();
   }
 
-  async function handleSend(e: FormEvent) {
-    e.preventDefault();
-    if (!input.trim() && !selectedImage) return;
+  async function sendMessage(userMessage: string, imageToSend: SelectedImage | null) {
+    if (!userMessage.trim() && !imageToSend) return;
 
-    const userMessage = input.trim() || "Find shoes like this.";
     const history = messages;
     setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
-    setInput("");
-    const imageToSend = selectedImage;
-    setSelectedImage(null);
     setIsLoading(true);
 
     try {
@@ -165,6 +175,16 @@ export default function ConciergePanel({
     }
   }
 
+  async function handleSend(e: FormEvent) {
+    e.preventDefault();
+    if (!input.trim() && !selectedImage) return;
+    const userMessage = input.trim() || "Find shoes like this.";
+    const imageToSend = selectedImage;
+    setInput("");
+    setSelectedImage(null);
+    await sendMessage(userMessage, imageToSend);
+  }
+
   function handleCheckout() {
     setCheckoutMessage("Redirecting to payment gateway...");
   }
@@ -173,7 +193,7 @@ export default function ConciergePanel({
     <>
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => onOpenChange(true)}
           className="fixed bottom-6 right-6 z-40 bg-background text-foreground rounded-full px-5 py-4 shadow-lg flex items-center gap-2 hover:opacity-90 transition-opacity"
         >
           <span className="w-2 h-2 rounded-full bg-accent" />
@@ -190,7 +210,7 @@ export default function ConciergePanel({
         <div className="fixed inset-0 z-50 flex justify-end sm:pointer-events-none">
           <div
             className="absolute inset-0 bg-black/30 sm:bg-transparent sm:pointer-events-none"
-            onClick={() => setIsOpen(false)}
+            onClick={() => onOpenChange(false)}
           />
 
           <div className="relative bg-paper w-full sm:w-[400px] h-full flex flex-col shadow-2xl sm:pointer-events-auto">
@@ -200,7 +220,7 @@ export default function ConciergePanel({
                 <p className="text-xs text-muted">AI Shopping Assistant</p>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => onOpenChange(false)}
                 className="text-muted hover:text-foreground text-xl leading-none"
                 aria-label="Close"
               >
@@ -255,7 +275,8 @@ export default function ConciergePanel({
                             const shoe = catalog.find((s) => s.id === rec.id);
                             if (!shoe) return null;
                             const color = rec.recommended_color || shoe.colors_available[0];
-                            const image = shoe.inventory.find((i) => i.color === color)?.image;
+                            const image = shoe.inventory.find((i) => i.color === color)?.image
+                              ?? shoe.inventory[0]?.image;
                             return (
                               <button
                                 key={rec.id}
