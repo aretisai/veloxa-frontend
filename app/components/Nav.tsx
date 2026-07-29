@@ -11,10 +11,23 @@ export default function Nav({
 }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
         <span className="font-display text-lg font-bold tracking-tight text-foreground shrink-0">
           VELOXA<span className="text-accent">.</span>
         </span>
+
+        <select
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className="md:hidden shrink-0 text-xs uppercase tracking-wide bg-transparent text-foreground border border-white/20 rounded-full px-2.5 py-1.5 focus:outline-none max-w-[38vw]"
+          aria-label="Select category"
+        >
+          {NAV_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat} className="text-ink bg-white">
+              {cat}
+            </option>
+          ))}
+        </select>
 
         <div className="hidden md:flex items-center gap-6">
           {NAV_CATEGORIES.map((cat) => (
@@ -30,7 +43,7 @@ export default function Nav({
           ))}
         </div>
 
-        <div className="flex items-center gap-6 shrink-0">
+        <div className="flex items-center gap-4 sm:gap-6 shrink-0">
           <a href="#shop" className="text-sm bg-foreground text-background px-4 py-1.5 rounded-full hover:bg-accent transition-colors">
             Shop
           </a>
