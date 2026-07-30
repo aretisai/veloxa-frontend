@@ -263,9 +263,8 @@ export default function ConciergePanel({
                       </div>
                       {msg.escalate && (
                         <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-lg px-3 py-2 max-w-[80%]">
-                          This requires human assistance.{" "}
                           <a href="mailto:support@veloxa.com" className="underline font-medium">
-                            Email Support
+                            Email our priority escalations team →
                           </a>
                         </div>
                       )}
