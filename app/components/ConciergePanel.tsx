@@ -26,6 +26,7 @@ export default function ConciergePanel({
   onSelectShoe,
   pendingQuestion,
   onPendingConsumed,
+  sessionId,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +36,7 @@ export default function ConciergePanel({
   onSelectShoe: (shoeId: number) => void;
   pendingQuestion: string | null;
   onPendingConsumed: () => void;
+  sessionId: string;
 }) {
   const [activeTab, setActiveTab] = useState<"chat" | "cart" | "trace">("chat");
   const [messages, setMessages] = useState<Message[]>([
@@ -45,7 +47,6 @@ export default function ConciergePanel({
   ]);
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [input, setInput] = useState("");
-  const [sessionId] = useState(() => crypto.randomUUID());
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);

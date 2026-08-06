@@ -19,6 +19,8 @@ const HERO_SHOES = [
   { src: "/images/Apex_Runner_Pro_Series_A_Red.png", cls: "animate-float-delay-2", style: "right-[2%] top-[62%] w-[24vw] max-w-[280px] opacity-40" },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [category, setCategory] = useState("All");
@@ -26,6 +28,7 @@ export default function Home() {
   const [selectedShoeId, setSelectedShoeId] = useState<number | null>(null);
   const [conciergeOpen, setConciergeOpen] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [sessionId] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     if (recommendations.length > 0) {
@@ -40,6 +43,14 @@ export default function Home() {
 
   function handleAddToCart(item: CartItem) {
     setCart((prev) => [...prev, item]);
+    // Fire-and-forget: logs this for the assisted-vs-direct conversion metric.
+    // Never awaited, never blocks the cart, and a failure here is silently
+    // swallowed - a logging gap should never be able to break a real purchase.
+    fetch(`${API_URL}/log-cart-action`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, name: item.name, price: item.price, source: "modal" }),
+    }).catch(() => {});
   }
 
   function handleAskAboutShoe(shoe: Shoe) {
@@ -202,6 +213,7 @@ export default function Home() {
         onSelectShoe={setSelectedShoeId}
         pendingQuestion={pendingQuestion}
         onPendingConsumed={() => setPendingQuestion(null)}
+        sessionId={sessionId}
       />
     </>
   );
