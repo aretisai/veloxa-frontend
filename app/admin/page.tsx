@@ -4,6 +4,14 @@ import { useState, useEffect } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+interface IntentDistribution {
+  CONTINUE: number;
+  ESCALATE: number;
+  DECLINE_PROMPT: number;
+  DECLINE_PRIVACY: number;
+  OFF_TOPIC: number;
+}
+
 interface Metrics {
   window_days: number;
   total_conversations: number | null;
@@ -21,6 +29,10 @@ interface Metrics {
   validator_pass: number | null;
   validator_fail: number | null;
   hallucination_rate_pct: number | null;
+  citation_checked: number | null;
+  price_accuracy_pct: number | null;
+  colour_flag_count: number | null;
+  intent_distribution: IntentDistribution | null;
   error: string | null;
 }
 
@@ -41,6 +53,10 @@ const EMPTY_METRICS = (error: string): Metrics => ({
   validator_pass: null,
   validator_fail: null,
   hallucination_rate_pct: null,
+  citation_checked: null,
+  price_accuracy_pct: null,
+  colour_flag_count: null,
+  intent_distribution: null,
   error,
 });
 
@@ -87,6 +103,10 @@ export default function AdminPage() {
       : null;
 
   const showData = metrics !== null && !metrics.error;
+  const dist = metrics?.intent_distribution ?? null;
+  const distTotal = dist
+    ? dist.CONTINUE + dist.ESCALATE + dist.DECLINE_PROMPT + dist.DECLINE_PRIVACY + dist.OFF_TOPIC
+    : 0;
 
   return (
     <main className="min-h-screen bg-background text-foreground px-6 py-16">
@@ -163,12 +183,30 @@ export default function AdminPage() {
           </div>
 
           <SectionHeading
-            title="Trust, Risk & Compliance"
-            note="PCI compliance status and bias/equity monitoring intentionally omitted - not applicable to this system"
+            title="Grounding & Factual Accuracy"
+            note="Two independent checks: an LLM judge on product claims, and a deterministic comparison of stated prices against the catalog"
           />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
-              label="Hallucination Rate"
+              label="Price Accuracy"
+              value={metrics?.price_accuracy_pct ?? null}
+              suffix="%"
+              sub={
+                showData && metrics.citation_checked
+                  ? `Verified against PostgreSQL across ${metrics.citation_checked} replies`
+                  : "Deterministic check - no LLM judgement involved"
+              }
+              tone={
+                metrics?.price_accuracy_pct !== null &&
+                metrics?.price_accuracy_pct !== undefined &&
+                metrics.price_accuracy_pct < 100
+                  ? "warn"
+                  : "good"
+              }
+              skeleton={isFirstLoad}
+            />
+            <StatCard
+              label="Ungrounded Product Claims"
               value={metrics?.hallucination_rate_pct ?? null}
               suffix="%"
               sub={
@@ -185,6 +223,19 @@ export default function AdminPage() {
               }
               skeleton={isFirstLoad}
             />
+            <StatCard
+              label="Colour Mentions Flagged"
+              value={metrics?.colour_flag_count ?? null}
+              sub="Heuristic - a colour named that is not on any retrieved product. Expect some false positives from descriptive language."
+              skeleton={isFirstLoad}
+            />
+          </div>
+
+          <SectionHeading
+            title="Trust, Risk & Compliance"
+            note="PCI compliance status and bias/equity monitoring intentionally omitted - not applicable to this system"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               label="Privacy Events Caught"
               value={metrics?.privacy_declines ?? null}
@@ -206,6 +257,49 @@ export default function AdminPage() {
               skeleton={isFirstLoad}
             />
           </div>
+
+          <SectionHeading
+            title="Intent Classification Distribution"
+            note="How the Intent Router classified every message. A sudden shift in this split indicates behavioural drift - accuracy itself is measured by the golden test set, not here."
+          />
+          {isFirstLoad ? (
+            <div className="border border-white/10 rounded-xl p-6">
+              <div className="h-24 w-full rounded bg-white/5 animate-pulse" />
+            </div>
+          ) : (
+            <div className="border border-white/10 rounded-xl p-6">
+              {dist && distTotal > 0 ? (
+                <div className="space-y-3">
+                  {(
+                    [
+                      ["CONTINUE", dist.CONTINUE, "bg-emerald-400"],
+                      ["ESCALATE", dist.ESCALATE, "bg-amber-400"],
+                      ["DECLINE_PROMPT", dist.DECLINE_PROMPT, "bg-red-400"],
+                      ["DECLINE_PRIVACY", dist.DECLINE_PRIVACY, "bg-red-400"],
+                      ["OFF_TOPIC", dist.OFF_TOPIC, "bg-white/40"],
+                    ] as [string, number, string][]
+                  ).map(([label, count, colour]) => {
+                    const pct = distTotal > 0 ? (count / distTotal) * 100 : 0;
+                    return (
+                      <div key={label} className="flex items-center gap-3">
+                        <span className="text-xs text-muted w-36 shrink-0">{label}</span>
+                        <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                          <div className={`h-full ${colour} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs text-foreground w-20 text-right shrink-0">
+                          {count} · {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-muted text-sm">
+                  No classified messages in this window yet. This populates as new conversations come in.
+                </p>
+              )}
+            </div>
+          )}
 
           <SectionHeading
             title="Customer Experience & Quality"
@@ -240,6 +334,8 @@ export default function AdminPage() {
         <p className="text-xs text-muted mt-12 pt-6 border-t border-white/10">
           Total cost is summed across all agent steps (Intent Router, Concierge, Vision, Output Validator) over the
           selected window. Every figure on this page is pulled live from Langfuse - nothing is a projected estimate.
+          Agent accuracy is measured separately by the golden test set, which scores each agent against known-correct
+          expected outcomes rather than against another model.
         </p>
       </div>
     </main>
