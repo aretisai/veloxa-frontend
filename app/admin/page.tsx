@@ -33,6 +33,16 @@ interface Metrics {
   price_accuracy_pct: number | null;
   colour_flag_count: number | null;
   intent_distribution: IntentDistribution | null;
+  images_analysed: number | null;
+  images_rejected: number | null;
+  images_platform_blocked: number | null;
+  csat_score_pct: number | null;
+  csat_responses: number | null;
+  avg_csat_rating: number | null;
+  csat_with_comments: number | null;
+  avg_product_rating: number | null;
+  review_count: number | null;
+  reviews_with_comments: number | null;
   error: string | null;
 }
 
@@ -57,6 +67,16 @@ const EMPTY_METRICS = (error: string): Metrics => ({
   price_accuracy_pct: null,
   colour_flag_count: null,
   intent_distribution: null,
+  images_analysed: null,
+  images_rejected: null,
+  images_platform_blocked: null,
+  csat_score_pct: null,
+  csat_responses: null,
+  avg_csat_rating: null,
+  csat_with_comments: null,
+  avg_product_rating: null,
+  review_count: null,
+  reviews_with_comments: null,
   error,
 });
 
@@ -302,15 +322,70 @@ export default function AdminPage() {
           )}
 
           <SectionHeading
+            title="Image Safety"
+            note="Two layers: the model provider's own platform filter blocks severe categories before analysis, and an application-level verdict rejects content unsuitable for a retail context"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <StatCard
+              label="Images Analysed"
+              value={metrics?.images_analysed ?? null}
+              sub="Uploads that reached the Vision Agent"
+              skeleton={isFirstLoad}
+            />
+            <StatCard
+              label="Images Rejected"
+              value={metrics?.images_rejected ?? null}
+              sub="Blocked before reaching retrieval or generation"
+              tone={metrics?.images_rejected ? "warn" : "good"}
+              skeleton={isFirstLoad}
+            />
+            <StatCard
+              label="Platform-Filter Blocks"
+              value={metrics?.images_platform_blocked ?? null}
+              sub="Caught by the provider's own safety filter, now detected and logged rather than failing silently"
+              skeleton={isFirstLoad}
+            />
+          </div>
+
+          <SectionHeading
             title="Customer Experience & Quality"
             note="Sentiment trajectory and predictive escalation intentionally omitted - not yet measurable"
           />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
+              label="Conversation CSAT"
+              value={metrics?.avg_csat_rating ?? null}
+              suffix=" / 5"
+              sub={
+                showData && metrics.csat_responses
+                  ? `${metrics.csat_score_pct}% rated 4+ · ${metrics.csat_responses} ${metrics.csat_responses === 1 ? "response" : "responses"}, ${metrics.csat_with_comments ?? 0} with comments`
+                  : "End-of-conversation survey, 1-5 scale"
+              }
+              tone={
+                metrics?.csat_score_pct !== null &&
+                metrics?.csat_score_pct !== undefined &&
+                metrics.csat_score_pct < 70
+                  ? "warn"
+                  : "good"
+              }
+              skeleton={isFirstLoad}
+            />
+            <StatCard
               label="Escalation Rate"
               value={escalationRatePct}
               suffix="%"
               sub="Correctly routed to a human"
+              skeleton={isFirstLoad}
+            />
+            <StatCard
+              label="Avg. Product Rating"
+              value={metrics?.avg_product_rating ?? null}
+              suffix=" / 5"
+              sub={
+                showData && metrics.review_count
+                  ? `${metrics.review_count} ${metrics.review_count === 1 ? "review" : "reviews"}, ${metrics.reviews_with_comments ?? 0} with written feedback`
+                  : "Customer reviews submitted on product pages"
+              }
               skeleton={isFirstLoad}
             />
           </div>

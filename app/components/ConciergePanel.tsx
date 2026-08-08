@@ -50,6 +50,10 @@ export default function ConciergePanel({
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [csatRating, setCsatRating] = useState(0);
+  const [csatHover, setCsatHover] = useState(0);
+  const [csatComment, setCsatComment] = useState("");
+  const [csatState, setCsatState] = useState<"hidden" | "open" | "submitted">("hidden");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -66,6 +70,34 @@ export default function ConciergePanel({
   function removeFromCart(id: string) {
     setCart((prev) => prev.filter((item) => item.id !== id));
   }
+
+  // CSAT triggers on conversation end, not message count - the customer
+  // closing the panel is the natural signal that they're done, and it
+  // avoids interrupting someone mid-task.
+  const hasRealConversation = messages.some((m, i) => m.role === "assistant" && i > 0);
+
+  function handlePanelClose() {
+    if (csatState === "hidden" && hasRealConversation) {
+      setCsatState("open");
+      return; // Hold the panel open for the survey rather than closing behind it.
+    }
+    onOpenChange(false);
+  }
+
+  function submitCsat() {
+    if (csatRating < 1) return;
+    setCsatState("submitted");
+    fetch(`${API_URL}/csat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        rating: csatRating,
+        comment: csatComment.trim() || null,
+      }),
+    }).catch(() => {});
+  }
+
 
   function clearCart() {
     setCart([]);
@@ -211,7 +243,7 @@ export default function ConciergePanel({
         <div className="fixed inset-0 z-50 flex justify-end sm:pointer-events-none">
           <div
             className="absolute inset-0 bg-black/30 sm:bg-transparent sm:pointer-events-none"
-            onClick={() => onOpenChange(false)}
+            onClick={handlePanelClose}
           />
 
           <div className="relative bg-paper w-full sm:w-[400px] h-full flex flex-col shadow-2xl sm:pointer-events-auto">
@@ -220,13 +252,23 @@ export default function ConciergePanel({
                 <p className="font-display font-bold">Veloxa Concierge</p>
                 <p className="text-xs text-muted">AI Shopping Assistant</p>
               </div>
-              <button
-                onClick={() => onOpenChange(false)}
-                className="text-muted hover:text-foreground text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-3">
+                {csatState === "hidden" && hasRealConversation && (
+                  <button
+                    onClick={() => setCsatState("open")}
+                    className="text-[11px] text-muted hover:text-foreground underline underline-offset-2"
+                  >
+                    Rate this chat
+                  </button>
+                )}
+                <button
+                  onClick={handlePanelClose}
+                  className="text-muted hover:text-foreground text-xl leading-none"
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="flex border-b border-line">
@@ -262,6 +304,7 @@ export default function ConciergePanel({
                       >
                         {msg.text}
                       </div>
+                      
                       {msg.escalate && (
                         <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-lg px-3 py-2 max-w-[80%]">
                           <a href="mailto:support@veloxa.com" className="underline font-medium">
@@ -307,6 +350,52 @@ export default function ConciergePanel({
                       <span className="w-2 h-2 rounded-full bg-subtle animate-bounce" />
                       <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.15s]" />
                       <span className="w-2 h-2 rounded-full bg-subtle animate-bounce [animation-delay:0.3s]" />
+                    </div>
+                  )}
+
+                  {csatState === "open" && (
+                    <div className="bg-white border border-line rounded-xl p-4 mt-2">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-sm font-semibold text-ink">How was this conversation?</p>
+                        <button
+                          onClick={() => setCsatState("submitted")}
+                          className="text-subtle hover:text-ink text-lg leading-none shrink-0"
+                          aria-label="Dismiss survey"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p className="text-xs text-subtle mb-3">1 = poor, 5 = excellent</p>
+                      <div className="flex items-center gap-1 mb-3">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setCsatRating(n)}
+                            onMouseEnter={() => setCsatHover(n)}
+                            onMouseLeave={() => setCsatHover(0)}
+                            className="text-2xl leading-none"
+                            aria-label={`Rate ${n} out of 5`}
+                          >
+                            <span className={n <= (csatHover || csatRating) ? "text-amber-500" : "text-line"}>★</span>
+                          </button>
+                        ))}
+                        {csatRating > 0 && <span className="text-xs text-subtle ml-2">{csatRating} of 5</span>}
+                      </div>
+                      <textarea
+                        value={csatComment}
+                        onChange={(e) => setCsatComment(e.target.value)}
+                        maxLength={1000}
+                        rows={2}
+                        placeholder="Anything you'd like to add? (optional)"
+                        className="w-full bg-paper border border-line rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent resize-none"
+                      />
+                      <button
+                        onClick={submitCsat}
+                        disabled={csatRating < 1}
+                        className="w-full mt-3 bg-ink text-paper rounded-full py-2 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                      >
+                        Submit
+                      </button>
                     </div>
                   )}
                 </div>
